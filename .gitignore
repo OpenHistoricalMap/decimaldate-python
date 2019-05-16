@@ -1,0 +1,3 @@
+# python cruft
+__pycache__/
+*.pyc
