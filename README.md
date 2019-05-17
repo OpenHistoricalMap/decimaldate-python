@@ -2,6 +2,11 @@
 
 Convert a ISO-formatted date to a decimal date, accounting for negative years (BCE) and for very large dates (-1000000-01-01).
 
+The returned decimal date is the year plus a decimal portion indicating "how far along" it was into the year on 12 noon of that day. For example, January 1 would be 0.5 days out of 365 so would have a decimal portion of 0.00136986.
+
+This treats the Gregorian calendar as proleptic, continuing with leap years every fourth year (except centuries, except-except 4th centuries) into positive and negative infinity. As such, approximately every fourth year will have 366 ays, as we are accustomed today.
+
+
 ### Usage and Examples
 
 ```
@@ -20,6 +25,15 @@ decimaldate.dec2iso(1999.497260)
 decimaldate.dec2iso(-1999.9164383)
 decimaldate.dec2iso(-1999.0835617)
 ```
+
+
+### Year 0 and Subtracting Dates
+
+The Gregorian calendar has no year 0. The morning after Dec 31 of 1 BCE would be Jan 1 of 1 CE.
+
+This is important to keep in mind when trying to subtract one date from another, and crossing the CE/BCE boundary: _You must subtract 2 years from the mathematical difference_ to find the real difference.
+
+This is a known issue with calculatig differences across the BCE/CE boundary, and is not novel to this expression of dates as decimal format.
 
 
 ### Our Use Case and Technical Challenges
