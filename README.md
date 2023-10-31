@@ -4,7 +4,7 @@ Convert a ISO-formatted date to a decimal date, accounting for negative years (B
 
 The returned decimal date is the year plus a decimal portion indicating "how far along" it was into the year on 12 noon of that day. For example, January 1 would be 0.5 days out of 365 so would have a decimal portion of 0.00136986.
 
-This treats the Gregorian calendar as proleptic, continuing with leap years every fourth year (except centuries, except-except 4th centuries) into positive and negative infinity. As such, approximately every fourth year will have 366 ays, as we are accustomed today.
+This treats the Gregorian calendar as proleptic, continuing with leap years every fourth year (except centuries, except-except 4th centuries) into positive and negative infinity. As such, approximately every fourth year `year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)` will have 366 days, as we are accustomed today.
 
 
 ### Usage and Examples
@@ -24,6 +24,24 @@ decimaldate.dec2iso(1999.0013700)
 decimaldate.dec2iso(1999.497260)
 decimaldate.dec2iso(-1999.9164383)
 decimaldate.dec2iso(-1999.0835617)
+```
+
+
+### Dates Less Than 0001-01-01
+
+This follows ISO 8601 in that year 0000 is 1 BCE, -0001 is 2 BCE, and so on. Expect negative dates to seem off by 1.
+
+```
+// positive dates are what you expect
+console.log( decimaldate.iso2dec('2000-01-01') )  // 2000.001366
+console.log( decimaldate.dec2iso(2000.001366) )  // 2000-01-01
+
+// off by 1: 0 = 1, -1 = -2, and so on
+console.log( decimaldate.iso2dec('-2000-01-01') )  // -1999.998634
+console.log( decimaldate.dec2iso(-2000.998634) )  // -2001-01-01
+
+// but it unpacks the same
+decimaldate.dec2iso(decimaldate.iso2dec('-1000-06-30'))  // -1000-06-30
 ```
 
 

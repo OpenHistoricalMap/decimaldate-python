@@ -23,6 +23,8 @@ def iso2dec(isodate):
         decbit = 1 - decbit
 
     yeardecimal = int(yearstring) + decbit
+    if plusminus == '-' and yeardecimal > 0:  # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE
+        yeardecimal -= 1
     if plusminus == '-':
         yeardecimal *= -1
 
@@ -55,6 +57,9 @@ def dec2iso(decdate):
 
     daynumber = int(math.floor(targetday - dayspassed + 1))
     daystring = "{:02d}".format(daynumber)
+
+    if plusminus == '-':  # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE
+        yearstring = str(abs(yearint) + 1)
 
     return "{}{}-{}-{}".format(plusminus, yearstring, monthstring, daystring)
 
