@@ -1,5 +1,18 @@
 import decimaldate
 
+print("Test: Leap Year")
+
+assert decimaldate._isleapyear(400) is True
+assert decimaldate._isleapyear(1000) is False
+assert decimaldate._isleapyear(2000) is True
+assert decimaldate._isleapyear(1984) is True
+assert decimaldate._isleapyear(387) is False
+assert decimaldate._isleapyear(-401) is True
+assert decimaldate._isleapyear(-1001) is False
+assert decimaldate._isleapyear(-2001) is True
+assert decimaldate._isleapyear(-1985) is True
+assert decimaldate._isleapyear(-388) is False
+
 print("Test: ISO to Decimal, CE")
 
 decver = decimaldate.iso2dec('2000-01-01')

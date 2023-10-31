@@ -120,5 +120,11 @@ def _daysinyear(yearstring):
 
 def _isleapyear(yearstring):
     yearnumber = int(yearstring)
+
+    # handle BCE; there is no 0 so leap years are -1, -5, -9, ..., -2001, -2005, ...
+    # just add 1 to the year to correct for this, for this purpose
+    if yearnumber < 1:
+        yearnumber += 1
+
     isleap = yearnumber % 4 == 0 and (yearnumber % 100 != 0 or yearnumber % 400 == 0)
     return isleap
