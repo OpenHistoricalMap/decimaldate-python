@@ -12,18 +12,18 @@ This treats the Gregorian calendar as proleptic, continuing with leap years ever
 ```
 import decimaldate
 
-decimaldate.iso2dec('2000-02-28')
-decimaldate.iso2dec('+2000-02-28')
-decimaldate.iso2dec('+2000-02-28')
+decimaldate.iso2dec('2000-02-28')   # 2000.159836
+decimaldate.iso2dec('+2000-02-28')  # 2000.159836
+decimaldate.iso2dec('+2000-02-28')  # 2000.159836
 
 decimaldate.iso2dec('-1900-01-31')  # a BCE year with a large decimal portion, since Jan 1 -1900 is further from 0
 
 decimaldate.iso2dec('1900-02-29')  # error, this would not have been a leap year
 
-decimaldate.dec2iso(1999.0013700)
-decimaldate.dec2iso(1999.497260)
-decimaldate.dec2iso(-1999.9164383)
-decimaldate.dec2iso(-1999.0835617)
+decimaldate.dec2iso(1999.0013700)   # '1999-01-01'
+decimaldate.dec2iso(1999.497260)    # '1999-07-01'
+decimaldate.dec2iso(-1999.9164383)  # '-2000-01-31'
+decimaldate.dec2iso(-1999.0835617)  # '-2000-12-01'
 ```
 
 
@@ -33,15 +33,15 @@ This follows ISO 8601 in that year 0000 is 1 BCE, -0001 is 2 BCE, and so on. Exp
 
 ```
 // positive dates are what you expect
-console.log( decimaldate.iso2dec('2000-01-01') )  // 2000.001366
-console.log( decimaldate.dec2iso(2000.001366) )  // 2000-01-01
+print( decimaldate.iso2dec('2000-01-01') )  # 2000.001366
+print( decimaldate.dec2iso(2000.001366) )   # 2000-01-01
 
 // off by 1: 0 = 1, -1 = -2, and so on
-console.log( decimaldate.iso2dec('-2000-01-01') )  // -1999.998634
-console.log( decimaldate.dec2iso(-2000.998634) )  // -2001-01-01
+print( decimaldate.iso2dec('-2000-01-01') )  # -1999.998634
+print( decimaldate.dec2iso(-2000.998634) )   # -2001-01-01
 
 // but it unpacks the same
-decimaldate.dec2iso(decimaldate.iso2dec('-1000-06-30'))  // -1000-06-30
+print( decimaldate.dec2iso(decimaldate.iso2dec('-1000-06-30')) )  # -1000-06-30
 ```
 
 
