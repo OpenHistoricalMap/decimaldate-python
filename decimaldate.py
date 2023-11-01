@@ -1,130 +1,185 @@
 """
-Convert a ISO-formatted date to a decimal date
-Accounts for negative years (BCE) and for very large dates.
+decimaldate.py
+https://github.com/OpenHistoricalMap/decimaldate-python
 """
 
 import re
 import math
 
+
+DECIMALPLACES = 5;
 RE_YEARMONTHDAY = re.compile(r'^(\-?\+?)(\d+)\-(\d\d)\-(\d\d)$')
 
 
 def iso2dec(isodate):
-    datepieces = re.match(RE_YEARMONTHDAY, isodate)
+    # parse the date into 3 integers and maybe a minus sign
+    # validate that it's a valid date
+    datepieces = RE_YEARMONTHDAY.match(isodate)
     if not datepieces:
-        raise ValueError("Invalid date format {}".format(isodate))
+        raise ValueError(f"iso2dec() malformed date {isodate}")
 
     (plusminus, yearstring, monthstring, daystring) = datepieces.groups()
-    if not _isvalidmonth(monthstring) or not _isvalidmonthday(yearstring, monthstring, daystring):
-        raise ValueError("Invalid date {}".format(isodate))
-
-    decbit = _propotionofdayspassed(yearstring, monthstring, daystring)
+    monthint = int(monthstring)
+    dayint = int(daystring)
     if plusminus == '-':
-        decbit = 1 - decbit
+        yearint = -1 * int(yearstring)
+    else:
+        yearint = int(yearstring)
 
-    yeardecimal = int(yearstring) + decbit
-    if plusminus == '-' and yeardecimal > 0:  # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE
-        yeardecimal -= 1
-    if plusminus == '-':
-        yeardecimal *= -1
+    if yearint <= 0:  # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE; we want proper negative integer
+        yearint -= 1
 
-    return round(yeardecimal, 6)
+    if not isvalidmonthday(yearint, monthint, dayint):
+        raise ValueError(f"iso2dec() invalid date {isodate}")
+
+    # number of days passed = decimal portion
+    # if BCE <=0 then count backward from the end of the year, instead of forward from January
+    decbit = proportionofdayspassed(yearint, monthint, dayint)
+
+    if yearint < 0:
+        # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE; we want string version
+        # so it's 1 to get from the artificially-inflated integer (string 0000 => -1 for math, +1 to get back to 0)
+        decimaloutput = 1 + 1 + yearint - (1 - decbit)
+    else:
+        decimaloutput = yearint + decbit
+
+    # round to standardized number of decimals
+    decimaloutput = round(decimaloutput, DECIMALPLACES)
+    return decimaloutput
 
 
 def dec2iso(decdate):
-    # strip the integer/year part
-    # find how many days were in this year, multiply back out to get the day-of-year number
-    if decdate >= 0:
-        yearint = int(math.floor(decdate))
-        plusminus = ''
-    else:
-        yearint = int(math.ceil(decdate))
-        plusminus = '-'
+    # remove the artificial +1 that we add to make positive dates look intuitive
+    truedecdate = decdate - 1;
+    ispositive = truedecdate > 0;
 
-    yearstring = str(abs(yearint))
-    daysinyear = _daysinyear(yearstring)
-    targetday = round(daysinyear * (decdate % 1), 1)
+    # get the integer year
+    if ispositive:
+        yearint = math.floor(truedecdate) + 1
+    else:
+        yearint = -abs(math.floor(truedecdate))
+
+    # how many days in year X decimal portion = number of days into the year
+    # if it's <0 then we count backward from the end of the year, instead of forward into the year
+    dty = daysinyear(yearint)
+    targetday = dty * (abs(truedecdate) % 1)
+    if ispositive:
+        targetday = math.ceil(targetday)
+    else:
+        targetday = dty - math.floor(targetday)
 
     # count up days months at a time, until we reach our target month
-    # the the remainder days is the day of the month, offset by 1 cuz we count from 0
+    # then the remainder (days) is the day of that month
     dayspassed = 0
-    for monthstring in ('01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'):
-        dtm = _daysinmonth(yearstring, monthstring)
+    monthint = 1
+    while monthint <= 12:
+        dtm = daysinmonth(yearint, monthint)
         if dayspassed + dtm < targetday:
             dayspassed += dtm
         else:
             break
+        monthint += 1
+    dayint = targetday - dayspassed
 
-    daynumber = int(math.floor(targetday - dayspassed + 1))
-    daystring = "{:02d}".format(daynumber)
+    # make string output
+    # months and day as 2 digits
+    # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE
+    monthstring = f"{monthint:02}"
+    daystring = f"{dayint:02}"
+    if yearint > 0:
+        yearstring = f"{yearint:04}"  # just the year as 4 digits
+    elif yearint == -1:
+        yearstring = f"{abs(yearint + 1):04}"  # BCE offset by 1 but do not add a - sign
+    else:
+        yearstring = '-' + f"{abs(yearint + 1):04}"  # BCE offset by 1 and add  - sign
 
-    if plusminus == '-':  # ISO 8601 shift year<=0 by 1, 0=1BCE, -1=2BCE
-        yearstring = str(abs(yearint) + 1)
-
-    return "{}{}-{}-{}".format(plusminus, yearstring, monthstring, daystring)
-
-
-def _propotionofdayspassed(yearstring, monthstring, daystring):
-    # count the number of days to get to this day of this month
-    dayspassed = 0
-    for tms in ('01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'):
-        if tms < monthstring:
-            dayspassed += _daysinmonth(yearstring, tms)
-    dayspassed += int(daystring)
-
-    # subtract 1 cuz day 0 is January 1 and not January 0
-    # add 0.5 to get us 12 noon
-    dayspassed -= 1
-    dayspassed += 0.5
-
-    # divide by days in year, to get decimal portion since noon of Jan 1
-    daysinyear = _daysinyear(yearstring)
-    return dayspassed / daysinyear
+    return f"{yearstring}-{monthstring}-{daystring}"
 
 
-def _isvalidmonth(monthstring):
-    validmonths = ('01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12')
-    return monthstring in validmonths
+def daysinyear(yearint):
+    dty = 366 if isleapyear(yearint) else 365
+    return dty
 
 
-def _isvalidmonthday(yearstring, monthstring, daystring):
-    days = int(daystring)
-    return days > 0 and days <= _daysinmonth(yearstring, monthstring)
+def isleapyear(yearint):
+    if yearint != int(yearint) or yearint == 0:
+        raise ValueError(f"isleapyear() invalid year {yearint}")
 
-
-def _daysinmonth(yearstring, monthstring):
-    monthdaycounts = {
-        '01': 31,
-        '02': 28,  # February
-        '03': 31,
-        '04': 30,
-        '05': 31,
-        '06': 30,
-        '07': 31,
-        '08': 31,
-        '09': 30,
-        '10': 31,
-        '11': 30,
-        '12': 31,
-    }
-
-    if _isleapyear(yearstring):
-        monthdaycounts['02'] = 29
-
-    return monthdaycounts[monthstring]
-
-
-def _daysinyear(yearstring):
-    return 366 if _isleapyear(yearstring) else 365
-
-
-def _isleapyear(yearstring):
-    yearnumber = int(yearstring)
-
-    # handle BCE; there is no 0 so leap years are -1, -5, -9, ..., -2001, -2005, ...
+    # don't forget BCE; there is no 0 so leap years are -1, -5, -9, ..., -2001, -2005, ...
     # just add 1 to the year to correct for this, for this purpose
-    if yearnumber < 1:
-        yearnumber += 1
+    yearnumber = yearint if yearint > 0 else yearint + 1
 
     isleap = yearnumber % 4 == 0 and (yearnumber % 100 != 0 or yearnumber % 400 == 0)
     return isleap
+
+
+def daysinmonth(yearint, monthint):
+    monthdaycounts = {
+        1: 31,
+        2: 28,  # February
+        3: 31,
+        4: 30,
+        5: 31,
+        6: 30,
+        7: 31,
+        8: 31,
+        9: 30,
+        10: 31,
+        11: 30,
+        12: 31,
+    }
+
+    if isleapyear(yearint):
+        monthdaycounts[2] = 29
+
+    return monthdaycounts[monthint]
+
+
+def isvalidmonthday(yearint, monthint, dayint):
+    if type(yearint) != int:
+        return False
+    if type(monthint) != int:
+        return False
+    if type(dayint) != int:
+        return False
+
+    if monthint < 1 or monthint > 12:
+        return False
+    if dayint < 1:
+        return False
+
+    dtm = daysinmonth(yearint, monthint)
+    if not dtm:
+        return False
+    if dayint > dtm:
+        return False
+
+    return True
+
+
+def proportionofdayspassed(yearint, monthint, dayint):
+    if type(yearint) != int:
+        raise ValueError(f"proportionofdayspassed() invalid yearint {yearint}")
+    if type(monthint) != int:
+        raise ValueError(f"proportionofdayspassed() invalid monthint {monthint}")
+    if type(dayint) != int:
+        raise ValueError(f"proportionofdayspassed() invalid dayint {dayint}")
+
+    # tally the days...
+    dayspassed = 0
+
+    # count the number of days to get through the prior months
+    m = 1
+    while m < monthint:
+        dtm = daysinmonth(yearint, m)
+        dayspassed += dtm
+        m += 1
+
+    # add the leftover days not in a prior month
+    # but minus 0.5 to get us to noon of the target day, as opposed to the end of the day
+    dayspassed = dayspassed + dayint - 0.5
+
+    # divide by days in year, to get decimal portion
+    # even January 1 is 0.5 days in since we snap to 12 noon
+    dty = daysinyear(yearint)
+    return dayspassed / dty

@@ -1,104 +1,64 @@
+#!python3
+
 import decimaldate
 
-print("Test: Leap Year")
+# a list of tests: function, input, output
+tests = [
+    ['isleapyear', 2000, True],
+    ['isleapyear', 1900, False],
+    ['isleapyear', 1, False],
+    ['isleapyear', 4, True],
+    ['isleapyear', -1, True],
+    ['isleapyear', -2000, False],
+    ['isleapyear', -1900, False],
+    ['isleapyear', -2001, True],
+    ['isleapyear', -1901, False],
+    ['dec2iso', -0.998633, '-0001-01-01'],
+    ['dec2iso', -0.5, '-0001-07-02'],  # non leap year, 1823rd day is July 2
+    ['dec2iso', -0.001366, '-0001-12-31'],
+    ['dec2iso', 0.001367, '0000-01-01'],
+    ['dec2iso', 0.5, '0000-07-01'],  # 1 BCE, leap year; 183rd day is July 1 due to February being longer
+    ['dec2iso', 0.998634, '0000-12-31'],  # 1 BCE, leap year; 183rd day is July 1 due to February being longer
+    ['dec2iso', +1.001369, '0001-01-01'],
+    ['dec2iso', +1.5, '0001-07-02'],  # non leap year, 1823rd day is July 2
+    ['dec2iso', +1.998631, '0001-12-31'],
+    ['dec2iso', +2.001369, '0002-01-01'],
+    ['dec2iso', +2.5, '0002-07-02'],  # non leap year, 1823rd day is July 2
+    ['dec2iso', +2.998631, '0002-12-31'],
+    ['iso2dec', '-0002-01-01', -1.99863],
+    ['iso2dec', '-0002-07-02', -1.5],  # non leap year, 1823rd day is July 2
+    ['iso2dec', '-0002-12-31', -1.00137],
+    ['iso2dec', '-0001-01-01', -0.99863],
+    ['iso2dec', '-0001-07-02', -0.5],  # non leap year, 1823rd day is July 2
+    ['iso2dec', '-0001-12-31', -0.00137],
+    ['iso2dec', '0000-01-01', 0.00137],  # 1 BCE, leap year; 183rd day is July 1 due to February being longer
+    ['iso2dec', '0000-07-02', 0.50137],  # 1 BCE, leap year; 183rd day is July 1 due to February being longer
+    ['iso2dec', '0000-12-31', 0.99863],
+    ['iso2dec', '0001-01-01', +1.00137],
+    ['iso2dec', '0001-07-02', +1.5],  # non leap year, 1823rd day is July 2
+    ['iso2dec', '0001-12-31', +1.99863],
+    ['iso2dec', '0002-01-01', +2.00137],
+    ['iso2dec', '0002-07-02', +2.5],  # non leap year, 1823rd day is July 2
+    ['iso2dec', '0002-12-31', +2.99863],
+]
 
-assert decimaldate._isleapyear(400) is True
-assert decimaldate._isleapyear(1000) is False
-assert decimaldate._isleapyear(2000) is True
-assert decimaldate._isleapyear(1984) is True
-assert decimaldate._isleapyear(387) is False
-assert decimaldate._isleapyear(-401) is True
-assert decimaldate._isleapyear(-1001) is False
-assert decimaldate._isleapyear(-2001) is True
-assert decimaldate._isleapyear(-1985) is True
-assert decimaldate._isleapyear(-388) is False
+print("Starting tests.")
+passcount = 0
+failcount = 0
 
-print("Test: ISO to Decimal, CE")
+for thistest in tests:
+    (funcname, argin, expected) = thistest
+    func = getattr(decimaldate, funcname)
+    result = func(argin)
 
-decver = decimaldate.iso2dec('2000-01-01')
-expect = 2000.001366
-assert decver == expect
+    if result == expected:
+        print(f"OK    {funcname}({argin}) = {expected}")
+        passcount += 1
+    else:
+        print(f"FAIL    {funcname}({argin}) returned {result} instead of expected {expected}")
+        failcount += 1
 
-decver = decimaldate.iso2dec('1999-01-01')
-expect = 1999.001370
-assert decver == expect
-
-decver = decimaldate.iso2dec('2000-12-31')
-expect = 2000.998634
-assert decver == expect
-
-decver = decimaldate.iso2dec('+1999-12-31')
-expect = 1999.998630
-assert decver == expect
-
-decver = decimaldate.iso2dec('+1999-07-01')
-expect = 1999.497260
-assert decver == expect
-
-print("Test: ISO to Decimal, BCE")
-
-decver = decimaldate.iso2dec('-2000-01-01')
-expect = -1999.998634
-assert decver == expect
-
-decver = decimaldate.iso2dec('-2000-12-31')
-expect = -1999.001366
-assert decver == expect
-
-decver = decimaldate.iso2dec('-1000000-01-01')
-expect = -999999.998634
-assert decver == expect
-
-decver = decimaldate.iso2dec('-1000000-12-31')
-expect = -999999.001366
-assert decver == expect
-
-print("Test: Decimal to ISO, CE")
-
-isover = decimaldate.dec2iso(2000.001366)
-expect = '2000-01-01'
-assert isover == expect
-
-isover = decimaldate.dec2iso(1999.001370)
-expect = '1999-01-01'
-assert isover == expect
-
-isover = decimaldate.dec2iso(2000.998634)
-expect = '2000-12-31'
-assert isover == expect
-
-isover = decimaldate.dec2iso(1999.998630)
-expect = '1999-12-31'
-assert isover == expect
-
-isover = decimaldate.dec2iso(1999.497260)
-expect = '1999-07-01'
-assert isover == expect
-
-isover = decimaldate.dec2iso(1999.5)
-expect = '1999-07-02'
-assert isover == expect
-
-isover = decimaldate.dec2iso(2000.5)
-expect = '2000-07-02'
-assert isover == expect
-
-print("Test: ISO to Decimal, BCE")
-
-isover = decimaldate.dec2iso(-2000.998634)
-expect = '-2001-01-01'
-assert isover == expect
-
-isover = decimaldate.dec2iso(-2000.001366)
-expect = '-2001-12-31'
-assert isover == expect
-
-isover = decimaldate.dec2iso(-1000000.998634)
-expect = '-1000001-01-01'
-assert isover == expect
-
-isover = decimaldate.dec2iso(-1000000.001366)
-expect = '-1000001-12-31'
-assert isover == expect
-
-print("All tests OK.")
+print("");
+print("All tests done.")
+print(f"{passcount} tests OK.");
+print(f"{failcount} tests failed.");
